@@ -1,7 +1,7 @@
 # react-sdk-config-server
 
 [![#general:homeserver.today](https://img.shields.io/badge/matrix-%23general:homeserver.today-brightgreen.svg)](https://matrix.to/#/#general:homeserver.today)
-[![TravisCI badge](https://travis-ci.org/turt2live/matrix-media-repo.svg?branch=master)](https://travis-ci.org/turt2live/matrix-media-repo)
+[![TravisCI badge](https://travis-ci.org/homeserver-today/react-sdk-config-server.svg?branch=master)](https://travis-ci.org/homeserver-today/react-sdk-config-server)
 
 RESTful service for configuring the per-domain config for matrix-react-sdk (Riot)
 
