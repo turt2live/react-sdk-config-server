@@ -1,0 +1,18 @@
+# General configuration
+repo:
+  bindAddress: '127.0.0.1'
+  port: 8000
+
+  # Where to store the logs, relative to the working directory. Logs will be automatically
+  # rotated every day and held for 14 days.
+  logDirectory: logs
+
+# The database configuration
+database:
+  # Currently only "postgres" is supported.
+  postgres: "postgres://your_username:your_password@localhost/database_name?sslmode=disable"
+
+# The API configuration
+api:
+  # The shared secret that must be given to all API requests to change values on configurations.
+  sharedSecret: "CHANGE_ME"
