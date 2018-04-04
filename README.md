@@ -68,8 +68,6 @@ server {
 
 # API
 
-// TODO: REWRITE THIS ALL
-
 The primary route at `/config(.*).json` is unauthenticated and calculates a configuration based on the domain name. The
 domain name can either be specified in the config file (eg: `config.t2bot.io.json`) or via the `Host` header (the default
 thing that happens when accessing `/config.json`).
