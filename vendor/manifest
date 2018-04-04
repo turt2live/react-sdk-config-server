@@ -20,6 +20,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/imdario/mergo",
+			"repository": "https://github.com/imdario/mergo",
+			"revision": "cfcc6d7b46fcffe426b34f8dd945143802ac6cf5",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/lestrrat/go-file-rotatelogs",
 			"repository": "https://github.com/lestrrat/go-file-rotatelogs",
 			"revision": "d3151e2a480fdcd05fb97102f5310a47d96274c4",
@@ -38,6 +44,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/patrickmn/go-cache",
+			"repository": "https://github.com/patrickmn/go-cache",
+			"revision": "a3647f8e31d79543b2d0f0ae2fe5c379d72cedc0",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/pkg/errors",
 			"repository": "https://github.com/pkg/errors",
 			"revision": "816c9085562cd7ee03e7f8188a1cfd942858cded",
@@ -47,6 +59,12 @@
 			"importpath": "github.com/rifflock/lfshook",
 			"repository": "https://github.com/rifflock/lfshook",
 			"revision": "62f5e0662816a462697d29f396fd19376d17f65b",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/ryanuber/go-glob",
+			"repository": "https://github.com/ryanuber/go-glob",
+			"revision": "256dc444b735e061061cf46c809487313d5b0065",
 			"branch": "master"
 		},
 		{

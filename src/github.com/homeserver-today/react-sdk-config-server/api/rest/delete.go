@@ -6,7 +6,6 @@ import (
 	"github.com/homeserver-today/react-sdk-config-server/api"
 	"github.com/gorilla/mux"
 	"github.com/homeserver-today/react-sdk-config-server/storage"
-	"github.com/homeserver-today/react-sdk-config-server/models"
 )
 
 func DeleteConfig(w http.ResponseWriter, r *http.Request, log *logrus.Entry) interface{} {
@@ -26,11 +25,11 @@ func DeleteConfig(w http.ResponseWriter, r *http.Request, log *logrus.Entry) int
 		"domain": domain,
 	})
 
-	err := storage.GetDatabase().DeleteConfig(r.Context(), domain)
+	newConf, err := storage.GetForwardingCache(r.Context(), log).DeleteConfig(domain)
 	if err != nil {
 		log.Error("Error deleting config", err)
 		return api.InternalServerError("Error deleting config")
 	}
 
-	return &models.ReactConfig{}
+	return newConf
 }

@@ -68,16 +68,21 @@ server {
 
 # API
 
-The primary route at `/config(.*).json` is unauthenticated and will return a configuration based on the following conditions:
-* If a domain is given in the file name (eg: `config.t2bot.io.json` for `t2bot.io`), look up the config for the domain
-* If no domain was given in the file name, assume the `Host` header and try to look up the config for that domain
-* If the config was not found, return the default config
-* 404 if there was no default config
+// TODO: REWRITE THIS ALL
 
-The API routes for changing the configuration do require authentication however. This is done by setting the `Authorization`
-header in your request to `Bearer TheSecretFromYourConfig`.
+The primary route at `/config(.*).json` is unauthenticated and calculates a configuration based on the domain name. The
+domain name can either be specified in the config file (eg: `config.t2bot.io.json`) or via the `Host` header (the default
+thing that happens when accessing `/config.json`).
 
-At any point the domain `default` can be supplied to interact with the default configuration.
+The configuration is then calculated based on the various wildcard domains that are configured. Wildcard configs can be
+set up by using the normal API routes and specifying `*` in the domain name. For example, `*.t2bot.io` can be used as a
+domain name to match any subdomain of t2bot.io. This wildcard can be placed anywhere in the domain name, including on it's
+own to provide a default config for all domains.
+
+The order the templated (wildcard) configs are used is defined by a `hstoday.weight` key in the template. The templates
+are used in ascending order by weight (therefore higher numbers 'win' if there's a conflict for which value to set a key
+to). Templates without weights will be treated as weight 0. The domain's non-templated config will always be the highest
+weight. If multiple templates share the same weight, the order is not defined.
 
 ### Getting a domain's configuration
 
@@ -106,9 +111,18 @@ $ curl -X PUT -H "Authorization: Bearer TheSecretFromYourConfig" -H "Content-Typ
 }
 ```
 
+**Example** (setting a weight of 12 to a wildcard domain):
+```
+$ curl -X PUT -H "Authorization: Bearer TheSecretFromYourConfig" -H "Content-Type: application/json" --data '{"brand":"Riot", "hstoday.weight": 12}' http://localhost:8000/api/v1/config/*.t2bot.io
+{
+    "brand": "Riot",
+    "hstoday.weight": 12
+}
+```
+
 ### Deleting a domain's configuration
 
-Any configuration, including the `default` configuration, may be deleted. An empty object is returned as a response to
+Any configuration may be deleted. An empty object is returned as a response to
 signify that the configuration was deleted.
 
 **Example**:

@@ -1,4 +1,4 @@
-package serve
+package rest
 
 import (
 	"net/http"
@@ -9,6 +9,10 @@ import (
 )
 
 func GetConfig(w http.ResponseWriter, r *http.Request, log *logrus.Entry) interface{} {
+	if !isValidApiToken(r, log) {
+		return api.AuthFailed()
+	}
+
 	params := mux.Vars(r)
 
 	domain := params["domain"]

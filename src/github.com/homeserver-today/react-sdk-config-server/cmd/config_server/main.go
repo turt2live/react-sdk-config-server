@@ -65,13 +65,14 @@ func main() {
 
 	optionsHandler := Handler{optionsRequest, hOpts}
 	serveConfigHandler := Handler{serve.GetConfig, hOpts}
+	getConfigHandler := Handler{rest.GetConfig, hOpts}
 	setConfigHandler := Handler{rest.SetConfig, hOpts}
 	deleteConfigHandler := Handler{rest.DeleteConfig, hOpts}
 
 	routes := list.New()
 	routes.PushBack(&ApiRoute{"/config.{domain:.*}.json", "GET", serveConfigHandler})
 	routes.PushBack(&ApiRoute{"/config.json", "GET", serveConfigHandler})
-	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:.*}", "GET", serveConfigHandler})
+	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:.*}", "GET", getConfigHandler})
 	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:.*}", "PUT", setConfigHandler})
 	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:.*}", "DELETE", deleteConfigHandler})
 

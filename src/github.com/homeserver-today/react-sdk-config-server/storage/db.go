@@ -16,6 +16,7 @@ import (
 const selectConfig = "SELECT config FROM configs WHERE hostname = $1;"
 const upsertConfig = "INSERT INTO configs (hostname, config) VALUES ($1, $2) ON CONFLICT (hostname) DO UPDATE SET config = $2;"
 const deleteConfig = "DELETE FROM configs WHERE hostname = $1;"
+const selectGlobs = "SELECT hostname FROM configs WHERE hostname LIKE '%*%';"
 
 type Database struct {
 	db         *sql.DB
@@ -26,6 +27,7 @@ type statements struct {
 	selectConfig *sql.Stmt
 	upsertConfig *sql.Stmt
 	deleteConfig *sql.Stmt
+	selectGlobs  *sql.Stmt
 }
 
 var dbInstance *Database
@@ -71,6 +73,9 @@ func OpenDatabase(connectionString string) (error) {
 	if d.statements.deleteConfig, err = d.db.Prepare(deleteConfig); err != nil {
 		return err
 	}
+	if d.statements.selectGlobs, err = d.db.Prepare(selectGlobs); err != nil {
+		return err
+	}
 
 	dbInstance = d
 	return nil
@@ -83,9 +88,9 @@ func (d *Database) GetConfig(ctx context.Context, domain string) (models.ReactCo
 		return nil, err
 	}
 
-	config := models.ReactConfig{}
-	err = json.Unmarshal([]byte(configStr), &config)
-	return config, err
+	reactConfig := models.ReactConfig{}
+	err = json.Unmarshal([]byte(configStr), &reactConfig)
+	return reactConfig, err
 }
 
 func (d *Database) UpsertConfig(ctx context.Context, domain string, config models.ReactConfig) (error) {
@@ -101,4 +106,22 @@ func (d *Database) UpsertConfig(ctx context.Context, domain string, config model
 func (d *Database) DeleteConfig(ctx context.Context, domain string) (error) {
 	_, err := d.statements.deleteConfig.ExecContext(ctx, domain)
 	return err
+}
+
+func (d *Database) ListGlobs(ctx context.Context) ([]string, error) {
+	rows, err := d.statements.selectGlobs.QueryContext(ctx)
+	if err == sql.ErrNoRows {
+		return make([]string, 0), nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	results := make([]string, 0)
+	var scanString string
+	for rows.Next() {
+		rows.Scan(&scanString)
+		results = append(results, scanString)
+	}
+
+	return results, err
 }

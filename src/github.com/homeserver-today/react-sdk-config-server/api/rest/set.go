@@ -47,11 +47,11 @@ func SetConfig(w http.ResponseWriter, r *http.Request, log *logrus.Entry) interf
 		"domain": domain,
 	})
 
-	err = storage.GetDatabase().UpsertConfig(r.Context(), domain, newConfig)
+	newConf, err := storage.GetForwardingCache(r.Context(), log).SetConfig(domain, &newConfig)
 	if err != nil {
-		log.Error("Error saving config", err)
-		return api.InternalServerError("Error saving config")
+		log.Error("Error updating config", err)
+		return api.InternalServerError("Error updating config")
 	}
 
-	return newConfig
+	return newConf
 }
