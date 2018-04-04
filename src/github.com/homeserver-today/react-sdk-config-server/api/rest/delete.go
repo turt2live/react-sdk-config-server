@@ -15,9 +15,7 @@ func DeleteConfig(w http.ResponseWriter, r *http.Request, log *logrus.Entry) int
 
 	params := mux.Vars(r)
 
-	keyPath := params["keyPath"]
 	domain := params["domain"]
-
 	if domain == "" {
 		log.Warn("No domain in request")
 		return api.BadRequest("No value given for 'domain'")
@@ -27,17 +25,11 @@ func DeleteConfig(w http.ResponseWriter, r *http.Request, log *logrus.Entry) int
 		"domain": domain,
 	})
 
-	if keyPath != "" {
-		log.Info("Key path provided - performing lookup")
-
-		return api.InternalServerError("Not yet implemented")
-	} else {
-		newConf, err := storage.GetForwardingCache(r.Context(), log).DeleteConfig(domain)
-		if err != nil {
-			log.Error("Error deleting config", err)
-			return api.InternalServerError("Error deleting config")
-		}
-
-		return newConf
+	newConf, err := storage.GetForwardingCache(r.Context(), log).DeleteConfig(domain)
+	if err != nil {
+		log.Error("Error deleting config", err)
+		return api.InternalServerError("Error deleting config")
 	}
+
+	return newConf
 }

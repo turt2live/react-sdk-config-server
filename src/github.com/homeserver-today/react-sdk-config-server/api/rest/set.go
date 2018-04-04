@@ -37,9 +37,7 @@ func SetConfig(w http.ResponseWriter, r *http.Request, log *logrus.Entry) interf
 
 	params := mux.Vars(r)
 
-	keyPath := params["keyPath"]
 	domain := params["domain"]
-
 	if domain == "" {
 		log.Warn("No domain in request")
 		return api.BadRequest("No value given for 'domain'")
@@ -49,17 +47,11 @@ func SetConfig(w http.ResponseWriter, r *http.Request, log *logrus.Entry) interf
 		"domain": domain,
 	})
 
-	if keyPath != "" {
-		log.Info("Key path provided - performing lookup")
-
-		return api.InternalServerError("Not yet implemented")
-	} else {
-		newConf, err := storage.GetForwardingCache(r.Context(), log).SetConfig(domain, &newConfig)
-		if err != nil {
-			log.Error("Error updating config", err)
-			return api.InternalServerError("Error updating config")
-		}
-
-		return newConf
+	newConf, err := storage.GetForwardingCache(r.Context(), log).SetConfig(domain, &newConfig)
+	if err != nil {
+		log.Error("Error updating config", err)
+		return api.InternalServerError("Error updating config")
 	}
+
+	return newConf
 }
