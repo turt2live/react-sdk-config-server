@@ -18,6 +18,8 @@ import (
 	"github.com/homeserver-today/react-sdk-config-server/api/serve"
 	"github.com/homeserver-today/react-sdk-config-server/api/rest"
 	"container/list"
+	"github.com/homeserver-today/react-sdk-config-server/models"
+	"fmt"
 )
 
 const UnkErrJson = `{"code":"M_UNKNOWN","message":"Unexpected error processing response"}`
@@ -72,9 +74,12 @@ func main() {
 	routes := list.New()
 	routes.PushBack(&ApiRoute{"/config.{domain:.*}.json", "GET", serveConfigHandler})
 	routes.PushBack(&ApiRoute{"/config.json", "GET", serveConfigHandler})
-	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:.*}", "GET", getConfigHandler})
-	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:.*}", "PUT", setConfigHandler})
-	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:.*}", "DELETE", deleteConfigHandler})
+	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}/{keyPath:.*}", "GET", getConfigHandler})
+	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}/{keyPath:.*}", "PUT", setConfigHandler})
+	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}/{keyPath:.*}", "DELETE", deleteConfigHandler})
+	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}", "GET", getConfigHandler})
+	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}", "PUT", setConfigHandler})
+	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}", "DELETE", deleteConfigHandler})
 
 	for e := routes.Front(); e != nil; e = e.Next() {
 		route := e.Value.(*ApiRoute)
@@ -130,6 +135,26 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res := h.h(w, r, contextLog)
 	if res == nil {
 		res = &EmptyResponse{}
+	}
+
+	if unk, ok := res.(*api.UnknownContentTypeResponse); ok {
+		m, isMap := unk.Value.(map[string]interface{})
+		c, isConf := unk.Value.(models.ReactConfig)
+		a, isArray := unk.Value.([]interface{})
+
+		if !isMap && !isConf && !isArray {
+			asStr := fmt.Sprintf("%v", unk.Value)
+			contextLog.Warn("Non-JSON response encountered: ", asStr)
+			w.Header().Set("Content-Type", "text/plain")
+			io.WriteString(w, asStr)
+			return
+		} else if isMap {
+			res = m
+		} else if isConf {
+			res = c
+		} else if isArray {
+			res = a
+		}
 	}
 
 	b, err := json.Marshal(res)
