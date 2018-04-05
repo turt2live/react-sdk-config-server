@@ -6,10 +6,6 @@ type ErrorResponse struct {
 	InternalCode string `json:"mr_errcode"`
 }
 
-type UnknownContentTypeResponse struct {
-	Value interface{}
-}
-
 func InternalServerError(message string) *ErrorResponse {
 	return &ErrorResponse{"M_UNKNOWN", message, "M_UNKNOWN"}
 }

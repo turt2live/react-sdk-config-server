@@ -76,12 +76,9 @@ func main() {
 	routes := list.New()
 	routes.PushBack(&ApiRoute{"/config.{domain:.*}.json", "GET", serveConfigHandler})
 	routes.PushBack(&ApiRoute{"/config.json", "GET", serveConfigHandler})
-	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}/{keyPath:.*}", "GET", getConfigHandler})
-	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}/{keyPath:.*}", "PUT", setConfigHandler})
-	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}/{keyPath:.*}", "DELETE", deleteConfigHandler})
-	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}", "GET", getConfigHandler})
-	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}", "PUT", setConfigHandler})
-	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:[a-zA-Z0-9\\.*]+}", "DELETE", deleteConfigHandler})
+	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:.*}", "GET", getConfigHandler})
+	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:.*}", "PUT", setConfigHandler})
+	routes.PushBack(&ApiRoute{"/api/v1/config/{domain:.*}", "DELETE", deleteConfigHandler})
 
 	for e := routes.Front(); e != nil; e = e.Next() {
 		route := e.Value.(*ApiRoute)
