@@ -29,10 +29,17 @@ type ApiConfig struct {
 	SharedSecret string `yaml:"sharedSecret"`
 }
 
+type MetricsConfig struct {
+	Enabled     bool   `yaml:"enabled"`
+	BindAddress string `yaml:"bindAddress"`
+	Port        int    `yaml:"port"`
+}
+
 type ConfigServerConfig struct {
 	General   *GeneralConfig  `yaml:"repo"`
 	Database  *DatabaseConfig `yaml:"database"`
-	ApiConfig *ApiConfig      `yaml:"api""`
+	ApiConfig *ApiConfig      `yaml:"api"`
+	Metrics   *MetricsConfig  `yaml:"metrics"`
 }
 
 var instance *ConfigServerConfig
@@ -97,6 +104,7 @@ func Get() (*ConfigServerConfig) {
 }
 
 const DefaultSharedSecret = "CHANGE_ME"
+
 func NewDefaultConfig() *ConfigServerConfig {
 	return &ConfigServerConfig{
 		General: &GeneralConfig{
@@ -109,6 +117,11 @@ func NewDefaultConfig() *ConfigServerConfig {
 		},
 		ApiConfig: &ApiConfig{
 			SharedSecret: DefaultSharedSecret,
+		},
+		Metrics: &MetricsConfig{
+			Enabled:     false,
+			BindAddress: "127.0.0.1",
+			Port:        8001,
 		},
 	}
 }

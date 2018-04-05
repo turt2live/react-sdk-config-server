@@ -20,6 +20,7 @@ import (
 	"container/list"
 	"github.com/homeserver-today/react-sdk-config-server/models"
 	"fmt"
+	"github.com/homeserver-today/react-sdk-config-server/metrics"
 )
 
 const UnkErrJson = `{"code":"M_UNKNOWN","message":"Unexpected error processing response"}`
@@ -31,6 +32,7 @@ type requestCounter struct {
 type Handler struct {
 	h    func(http.ResponseWriter, *http.Request, *logrus.Entry) interface{}
 	opts HandlerOpts
+	name string
 }
 
 type HandlerOpts struct {
@@ -60,16 +62,16 @@ func main() {
 		panic(err)
 	}
 
-	logrus.Info("Starting media repository...")
+	logrus.Info("Starting config server...")
 
 	counter := requestCounter{}
 	hOpts := HandlerOpts{&counter}
 
-	optionsHandler := Handler{optionsRequest, hOpts}
-	serveConfigHandler := Handler{serve.GetConfig, hOpts}
-	getConfigHandler := Handler{rest.GetConfig, hOpts}
-	setConfigHandler := Handler{rest.SetConfig, hOpts}
-	deleteConfigHandler := Handler{rest.DeleteConfig, hOpts}
+	optionsHandler := Handler{optionsRequest, hOpts, "Options"}
+	serveConfigHandler := Handler{serve.GetConfig, hOpts, "ServeConfig"}
+	getConfigHandler := Handler{rest.GetConfig, hOpts, "GetConfig"}
+	setConfigHandler := Handler{rest.SetConfig, hOpts, "SetConfig"}
+	deleteConfigHandler := Handler{rest.DeleteConfig, hOpts, "DeleteConfig"}
 
 	routes := list.New()
 	routes.PushBack(&ApiRoute{"/config.{domain:.*}.json", "GET", serveConfigHandler})
@@ -88,17 +90,36 @@ func main() {
 		rtr.Handle(route.Path, optionsHandler).Methods("OPTIONS")
 	}
 
-	rtr.NotFoundHandler = Handler{api.NotFoundHandler, hOpts}
-	rtr.MethodNotAllowedHandler = Handler{api.MethodNotAllowedHandler, hOpts}
+	logrus.Info("Registering route: GET /api/v1/health/ping")
+	rtr.Handle("/api/v1/health/ping", &metrics.PingHandler{}).Methods("GET", "OPTIONS")
+
+	rtr.NotFoundHandler = Handler{api.NotFoundHandler, hOpts, "NotFound"}
+	rtr.MethodNotAllowedHandler = Handler{api.MethodNotAllowedHandler, hOpts, "MethodNotAllowed"}
+
+	if config.Get().Metrics.Enabled {
+		logrus.Info("Enabling metrics reporting (Prometheus)")
+		go metrics.InitServer(rtr)
+
+		// TODO: DISABLE METRICS (DO NOT PASS ROUTER)
+		logrus.Warn("ENABLING METRICS ON MAIN HTTP SERVER FOR DEBUGGING PURPOSES")
+	}
 
 	address := config.Get().General.BindAddress + ":" + strconv.Itoa(config.Get().General.Port)
 	http.Handle("/", rtr)
 
-	logrus.WithField("address", address).Info("Started up. Listening at http://" + address)
-	http.ListenAndServe(address, nil)
+	logrus.Info("Started up. Listening at http://" + address)
+	logrus.Fatal(http.ListenAndServe(address, nil))
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	timer := metrics.StartRequestTimer(r.Method, h.name)
+	metrics.IncRequest(r.Method, h.name)
+	requestComplete := func(statusCode int, log *logrus.Entry) {
+		metrics.IncResponse(r.Method, h.name, statusCode)
+		timeToComplete := timer.End(statusCode)
+		log.Info("Request completed in ", timeToComplete, " (", timeToComplete.Seconds(), " seconds)")
+	}
+
 	isUsingForwardedHost := false
 	if r.Header.Get("X-Forwarded-Host") != "" {
 		r.Host = r.Header.Get("X-Forwarded-Host")
@@ -147,6 +168,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			contextLog.Warn("Non-JSON response encountered: ", asStr)
 			w.Header().Set("Content-Type", "text/plain")
 			io.WriteString(w, asStr)
+			requestComplete(http.StatusOK, contextLog)
 			return
 		} else if isMap {
 			res = m
@@ -161,38 +183,43 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		http.Error(w, UnkErrJson, http.StatusInternalServerError)
+		requestComplete(http.StatusOK, contextLog)
 		return
 	}
 	jsonStr := string(b)
 
 	contextLog.Info("Replying with result: " + reflect.TypeOf(res).Elem().Name() + " " + jsonStr)
 
+	statusCode := http.StatusOK
 	switch result := res.(type) {
 	case *api.ErrorResponse:
-		w.Header().Set("Content-Type", "application/json")
 		switch result.InternalCode {
 		case "M_UNKNOWN_TOKEN":
-			http.Error(w, jsonStr, http.StatusForbidden)
+			statusCode = http.StatusForbidden
 			break
 		case "M_NOT_FOUND":
-			http.Error(w, jsonStr, http.StatusNotFound)
+			statusCode = http.StatusNotFound
 			break
 		case "M_BAD_REQUEST":
-			http.Error(w, jsonStr, http.StatusBadRequest)
+			statusCode = http.StatusBadRequest
 			break
 		case "M_METHOD_NOT_ALLOWED":
-			http.Error(w, jsonStr, http.StatusMethodNotAllowed)
+			statusCode = http.StatusMethodNotAllowed
 			break
 		default: // M_UNKNOWN
-			http.Error(w, jsonStr, http.StatusInternalServerError)
+			statusCode = http.StatusInternalServerError
 			break
 		}
 		break
 	default:
-		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, jsonStr)
+		statusCode = http.StatusOK
 		break
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	io.WriteString(w, jsonStr)
+	requestComplete(statusCode, contextLog)
 }
 
 func (c *requestCounter) GetNextId() string {

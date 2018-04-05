@@ -11,12 +11,14 @@ import (
 	"database/sql"
 	"strings"
 	"sort"
+	"github.com/homeserver-today/react-sdk-config-server/metrics"
 )
 
 const cacheExpiration = 1 * time.Hour
 const cleanupInterval = 2 * time.Hour
 const domainPrefix = "domain_"
 const globListKey = "globs"
+const metricsCacheName = "configs"
 
 type configCacheFactory struct {
 	cache *cache.Cache
@@ -43,6 +45,10 @@ func getBaseCache() (*configCacheFactory) {
 	return cacheInstance
 }
 
+func updateCacheCount() {
+	metrics.SetCacheCount(metricsCacheName, getBaseCache().cache.ItemCount())
+}
+
 func GetForwardingCache(ctx context.Context, log *logrus.Entry) (*configCache) {
 	return &configCache{
 		cache: getBaseCache().cache,
@@ -54,7 +60,10 @@ func GetForwardingCache(ctx context.Context, log *logrus.Entry) (*configCache) {
 func (c *configCache) GetConfig(domain string) (*models.ReactConfig, error) {
 	config, found := c.cache.Get(domainPrefix + domain)
 	if found {
+		metrics.IncCacheHit(metricsCacheName)
 		return config.(*models.ReactConfig), nil
+	} else {
+		metrics.IncCacheMiss(metricsCacheName)
 	}
 
 	if strings.Contains(domain, "*") {
@@ -73,6 +82,7 @@ func (c *configCache) GetConfig(domain string) (*models.ReactConfig, error) {
 		}
 
 		c.cache.Set(domainPrefix+domain, calcConfig, cache.DefaultExpiration)
+		updateCacheCount()
 		return calcConfig, nil
 	}
 }
@@ -89,6 +99,7 @@ func (c *configCache) calculateConfig(domain string) (*models.ReactConfig, error
 		}
 
 		c.cache.Set(globListKey, globs, cache.DefaultExpiration)
+		updateCacheCount()
 	}
 
 	type templateTuple struct {
@@ -152,6 +163,7 @@ func (c *configCache) SetConfig(domain string, config *models.ReactConfig) (*mod
 
 	// Purge the domain from the cache
 	c.cache.Delete(domainPrefix + domain)
+	updateCacheCount()
 
 	// If the domain is a glob, clear the cache entirely. It is relatively rare that people will be
 	// setting glob configs, so this shouldn't be that bad. It also means we don't need to track which
@@ -160,6 +172,7 @@ func (c *configCache) SetConfig(domain string, config *models.ReactConfig) (*mod
 		for k := range c.cache.Items() {
 			c.cache.Delete(k)
 		}
+		updateCacheCount()
 	}
 
 	return c.GetConfig(domain)

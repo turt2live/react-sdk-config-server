@@ -16,3 +16,10 @@ database:
 api:
   # The shared secret that must be given to all API requests to change values on configurations.
   sharedSecret: "CHANGE_ME"
+
+# Metrics (Prometheus) configuration.
+# If enabled, Prometheus can be pointed at /api/v1/health/metrics
+metrics:
+  enabled: false
+  bindAddress: '127.0.0.1'
+  port: 8001
