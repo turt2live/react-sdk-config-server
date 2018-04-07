@@ -95,10 +95,7 @@ func main() {
 
 	if config.Get().Metrics.Enabled {
 		logrus.Info("Enabling metrics reporting (Prometheus)")
-		go metrics.InitServer(rtr)
-
-		// TODO: DISABLE METRICS (DO NOT PASS ROUTER)
-		logrus.Warn("ENABLING METRICS ON MAIN HTTP SERVER FOR DEBUGGING PURPOSES")
+		go metrics.InitServer()
 	}
 
 	address := config.Get().General.BindAddress + ":" + strconv.Itoa(config.Get().General.Port)
